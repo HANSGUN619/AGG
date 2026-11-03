@@ -1,0 +1,30 @@
+
+{
+  "updatedAt": null,
+  "articles": [
+    {
+      "topic": "cs",
+      "title": "Valve publica atualização do ranking para o Major",
+      "url": "https://www.hltv.org/news/45890/valve-release-major-deciding-november-vrs-update",
+      "source": "HLTV",
+      "publishedAt": "2026-11-02",
+      "image": "assets/counter-strike.svg"
+    },
+    {
+      "topic": "lol",
+      "title": "Hall of Legends 2026: Caps",
+      "url": "https://halloflegends.leagueoflegends.com/en-us/",
+      "source": "Riot Games",
+      "publishedAt": "2026-08-24",
+      "image": "assets/league.svg"
+    },
+    {
+      "topic": "val",
+      "title": "VALORANT Game Changers Championship 2026",
+      "url": "https://www.youtube.com/watch?v=69sKYwsxUM8",
+      "source": "Riot Games",
+      "publishedAt": "2026-10-20",
+      "image": "assets/valorant.svg"
+    }
+  ]
+}

@@ -28,7 +28,7 @@ const form=document.querySelector('#contact-form');if(form){form.addEventListene
     if (!response.ok) throw new Error('HTTP '+response.status);
     const payload = await response.json();
     const items = Array.isArray(payload.articles) ? payload.articles : [];
-    const atualizacao = payload.updatedAt ? 'Atualização do portal: '+formatarData(payload.updatedAt) : 'Seleção inicial verificada. A atualização automática começa após a publicação com GitHub Actions.';
+    const atualizacao = payload.updatedAt ? 'Atualização do portal: '+formatarData(payload.updatedAt) : 'Seleção inicial de matérias com fontes identificadas.';
     statuses.forEach(status => {status.textContent=atualizacao;});
 
 // Os links da Home atual ainda não possuem data-feature.
@@ -47,7 +47,7 @@ destaques.forEach(({topic, el: feature}) => {
   const comFoto = x => seguro(x.image) && !String(x.image).includes('/assets/') && !String(x.image).startsWith('assets/');
   const story = recentes.find(comFoto) || recentes[0];
   if (!story) return;
-  feature.href = window.ARENA_LOCAL_URL ? window.ARENA_LOCAL_URL(story.url) : seguro(story.url);
+  feature.href = window.ARENA_LOCAL_URL ? window.ARENA_LOCAL_URL(story.url, story) : seguro(story.url);
   feature.removeAttribute('target');
   feature.removeAttribute('rel');
   const headline = feature.querySelector('h3');
@@ -65,6 +65,68 @@ destaques.forEach(({topic, el: feature}) => {
   if (marker) marker.textContent = (story.source || 'Fonte original') + ' · ' + formatarData(story.publishedAt) + ' · LER NO ARENA//GG →';
 });
 if (mainFeatureStatus) mainFeatureStatus.textContent = 'FOTOS E MANCHETES DAS FONTES ORIGINAIS';
+
+    // Elimina as seis chamadas demonstrativas da Home: reaproveita a estrutura
+    // e os filtros existentes, mas com títulos, links, fotografias e fontes reais.
+    const categorias = ['lol','val','cs'];
+    const noticiasPorTema = Object.fromEntries(categorias.map(t => [t, items
+      .filter(x => x && x.topic === t && seguro(x.url) && x.title)
+      .sort((a,b) => (b.publishedAt||'').localeCompare(a.publishedAt||''))]));
+    const deslocamento = {lol:0,val:0,cs:0};
+    let corrigidas = 0;
+    document.querySelectorAll('.news-list .news-row').forEach(row => {
+      const t = row.dataset.topic;
+      const pool = noticiasPorTema[t] || [];
+      const idx = deslocamento[t]++;
+      // Evita repetir na lista a primeira manchete de cada editoria.
+      const noticia = pool[idx + 2] || pool[idx] || null;
+      if (!noticia) {
+        row.hidden = true;
+        return;
+      }
+      const caminho = window.ARENA_LOCAL_URL ? window.ARENA_LOCAL_URL(noticia.url, noticia) : seguro(noticia.url);
+      const titulo = row.querySelector('h3 a');
+      const fotoLink = row.querySelector('.news-thumb');
+      const foto = row.querySelector('.news-thumb img');
+      const descricao = row.querySelector('p');
+      const rodape = row.querySelector('.meta');
+      if (titulo) {titulo.textContent = noticia.title;titulo.href = caminho;}
+      if (fotoLink) fotoLink.href = caminho;
+      if (foto) {
+        const reserva = fallbackImage[t] || 'assets/arena.svg';
+        foto.onerror = () => {foto.onerror=null;foto.src=reserva;};
+        foto.src = seguro(noticia.image) || reserva;
+        foto.alt = 'Imagem relacionada à matéria: ' + noticia.title + ' · ' + (noticia.source||'fonte original');
+        foto.loading = 'lazy';
+      }
+      if (descricao) descricao.textContent = noticia.description || 'Veja o resumo e consulte a publicação original.';
+      if (rodape) rodape.textContent = (noticia.source||'Fonte original') + ' · ' + formatarData(noticia.publishedAt) + ' · LER NO ARENA//GG';
+      row.hidden = false;
+      corrigidas++;
+    });
+    if (corrigidas) {
+      const titulo = document.querySelector('.news-feed .section-heading h2');
+      const selo = document.querySelector('.news-feed .section-heading .section-brow');
+      if (titulo) titulo.textContent = 'Mais manchetes do cenário';
+      if (selo) selo.textContent = 'NOTÍCIAS REAIS · POR MODALIDADE';
+    }
+    const carimbo = document.querySelector('.news-feature .date-label');
+    if (carimbo) carimbo.textContent = payload.updatedAt
+      ? 'ATUALIZADO EM ' + formatarData(payload.updatedAt) + ' · FONTES CITADAS'
+      : 'SELEÇÃO DE NOTÍCIAS · FONTES CITADAS';
+
+    // Troca as chamadas genéricas da barra lateral por manchetes verificáveis.
+    const radar = document.querySelectorAll('.sidebar .radar');
+    radar.forEach((caixa, i) => {
+      const tema = categorias[i];
+      const noticia = (noticiasPorTema[tema]||[])[1] || (noticiasPorTema[tema]||[])[0];
+      if (!noticia) return;
+      const link = caixa.querySelector('a');
+      if (link) {
+        link.textContent = noticia.title;
+        link.href = window.ARENA_LOCAL_URL ? window.ARENA_LOCAL_URL(noticia.url, noticia) : seguro(noticia.url);
+      }
+    });
     destinos.forEach(destino => {
       const assunto = destino.dataset.liveFeed;
       const limite = Math.min(12, Math.max(1,Number(destino.dataset.limit)||6));
@@ -73,7 +135,7 @@ if (mainFeatureStatus) mainFeatureStatus.textContent = 'FOTOS E MANCHETES DAS FO
       if (!lista.length) {destino.appendChild(texto('p','Nenhuma matéria disponível no momento. As análises autorais continuam acessíveis abaixo.','feed-empty'));return;}
       lista.forEach(item => {
         const article = document.createElement('article');article.className='live-card';
-        const a = document.createElement('a');a.href=window.ARENA_LOCAL_URL ? window.ARENA_LOCAL_URL(item.url) : seguro(item.url);a.className='live-card-link';
+        const a = document.createElement('a');a.href=window.ARENA_LOCAL_URL ? window.ARENA_LOCAL_URL(item.url, item) : seguro(item.url);a.className='live-card-link';
         const visual=document.createElement('div');visual.className='live-card-visual';
         const img=document.createElement('img');img.loading='lazy';img.alt='Imagem de divulgação da fonte: '+(item.source||'notícia');
         img.src=seguro(item.image)||fallbackImage[item.topic]||'assets/arena.svg';
@@ -275,7 +337,16 @@ const ARENA_ARTIGOS = [
   function node(tag,klass,txt){const el=document.createElement(tag);if(klass)el.className=klass;if(txt!==undefined)el.textContent=String(txt);return el;}
   function safeUrl(raw){try{const x=new URL(raw,location.href);return x.protocol==='https:' ? x.href : null;}catch{return null;}}
   function localArticleUrl(id){const u=new URL(location.pathname,location.origin);u.searchParams.set('materia',id);return u.pathname+u.search;}
-  function localFeedUrl(url){const u=new URL(location.pathname,location.origin);u.searchParams.set('noticia',url);return u.pathname+u.search;}
+  function localFeedUrl(url,meta){
+    const u=new URL(location.pathname,location.origin);
+    u.searchParams.set('noticia',url);
+    if(meta){
+      // Apenas dados breves do feed: não reproduz a reportagem de terceiros.
+      const dados={titulo:meta.title,resumo:meta.description,foto:meta.image,data:meta.publishedAt,tema:meta.topic,fonte:meta.source};
+      Object.entries(dados).forEach(([chave,valor])=>{if(valor)u.searchParams.set(chave,String(valor).slice(0,chave==='foto'?350:200));});
+    }
+    return u.pathname+u.search;
+  }
   function formatDate(t){if(!t)return 'Data não informada';const d=new Date(t);return isNaN(d)?'Data não informada':new Intl.DateTimeFormat('pt-BR',{dateStyle:'long',timeZone:'UTC'}).format(d);}
   function addStyles(){
     const style=document.createElement('style');style.textContent=`
@@ -306,6 +377,7 @@ const ARENA_ARTIGOS = [
       .agg-sources h2{margin:0 0 9px;font-size:17px}
       .agg-sources a{color:#a22838;text-decoration:underline;overflow-wrap:anywhere}
       .agg-sources p{font-size:13px;color:#566476;line-height:1.5}
+      .agg-department-photo{display:block;width:100%;height:110px;object-fit:cover;margin:8px 0 12px;background:#172232}
       .agg-brief-note{padding:14px 18px;background:#f5f6f8;border-left:3px solid #d6a44c;color:#515b6b;font-size:13px;line-height:1.55;margin-bottom:20px}
       @media(max-width:750px){.agg-editorial-grid{grid-template-columns:1fr}.agg-editorial{padding:0 16px}.agg-editorial-link{min-height:auto}.agg-reader{padding:12px 10px 30px}.agg-reader-card{padding:22px}.agg-reader h1{font-size:30px}}
     `;document.head.appendChild(style);
@@ -347,21 +419,46 @@ const ARENA_ARTIGOS = [
     const sec=node('section','agg-editorial');
     const head=node('div','agg-editorial-head');const labels=node('div');labels.append(node('div','agg-editorial-tag','REPORTAGENS VERIFICÁVEIS · 03 NOV 2026'),node('h2',null,'Leia reportagens no ARENA//GG'));head.append(labels);sec.append(head);
     const grid=node('div','agg-editorial-grid');
-    for(const article of editorial){const link=node('a','agg-editorial-link');link.href=localArticleUrl(article.id);if(article.image){const img=node('img','agg-editorial-photo');img.src=safeUrl(article.image)||fallback[article.topic]||'assets/arena.svg';img.alt='Foto de arquivo do jogador Zeus em 2024';img.loading='lazy';img.onerror=()=>{img.onerror=null;img.src=fallback[article.topic]||'assets/arena.svg';};link.append(img);}link.append(node('small',null,topics[article.topic]),node('h3',null,article.title),node('p',null,article.subtitle),node('span','agg-read-more','LER REPORTAGEM COMPLETA →'));grid.append(link);}
+    for(const article of editorial){const link=node('a','agg-editorial-link');link.href=localArticleUrl(article.id);if(article.image){const img=node('img','agg-editorial-photo');img.src=safeUrl(article.image)||fallback[article.topic]||'assets/arena.svg';img.alt='Imagem associada à reportagem: '+article.title;img.loading='lazy';img.onerror=()=>{img.onerror=null;img.src=fallback[article.topic]||'assets/arena.svg';};link.append(img);}link.append(node('small',null,topics[article.topic]),node('h3',null,article.title),node('p',null,article.subtitle),node('span','agg-read-more','LER REPORTAGEM COMPLETA →'));grid.append(link);}
     sec.append(grid);anchor.before(sec);
   }
   addEditorialSection();
+  // Conserva links com imagens para as três páginas complementares da atividade.
+  const paginas = ['league-of-legends.html','valorant.html','counter-strike-2.html'];
+  const logos = ['assets/league.svg','assets/valorant.svg','assets/counter-strike.svg'];
+  document.querySelectorAll('.departments-grid > a').forEach((link,i) => {
+    if (!paginas[i] || link.querySelector('img')) return;
+    link.href = paginas[i];
+    const img=node('img','agg-department-photo');img.src=logos[i];
+    img.alt='Imagem de destaque da editoria '+(topics[['lol','val','cs'][i]]||'esports');
+    const strong=link.querySelector('strong');if(strong)strong.before(img);else link.prepend(img);
+  });
   // A Home exibe a notícia real e a página do próprio portal passa a ser o destino do clique.
   // Um endereço completo da fonte é codificado no link. A fonte continua citada no leitor.
   window.ARENA_LOCAL_URL = localFeedUrl;
   const articleId=q.get('materia');
   if(articleId){const article=editorial.find(x=>x.id===articleId);if(article)showReader(article);}
   const feedUrl=q.get('noticia');
-  if(feedUrl){
-    fetch('data/noticias.json',{cache:'no-store'}).then(r=>{if(!r.ok)throw Error('Feed indisponível');return r.json();}).then(payload=>{
-      const item=(payload.articles||[]).find(x=>x.url===feedUrl);
-      if(item)showReader({...item,subtitle:item.description||'',author:item.source||'Fonte externa'},true);
-      else if(safeUrl(feedUrl))showReader({title:'Manchete indisponível no feed atual',topic:'lol',url:feedUrl,description:'Esta matéria não consta na edição atual do feed. Abra a fonte original para ler o conteúdo.',source:'Fonte original'},true);
-    }).catch(()=>{if(safeUrl(feedUrl))showReader({title:'Notícia temporariamente indisponível',topic:'lol',url:feedUrl,description:'Não foi possível recuperar os dados desta notícia.',source:'Fonte original'},true);});
+  if(feedUrl && safeUrl(feedUrl)){
+    const arquivada = q.get('titulo') ? {
+      title:q.get('titulo').slice(0,180),
+      topic:topics[q.get('tema')] ? q.get('tema') : 'lol',
+      publishedAt:q.get('data')||'',source:q.get('fonte')||'Fonte original',
+      image:safeUrl(q.get('foto')) || fallback[q.get('tema')] || 'assets/arena.svg',
+      description:q.get('resumo')||'Esta publicação não incluiu um resumo no feed.',
+      url:feedUrl
+    } : null;
+    const carregar=async()=>{
+      try{
+        const r=await fetch('data/noticias.json',{cache:'no-store'});
+        if(!r.ok)throw new Error('Feed indisponível');
+        const payload=await r.json();
+        const item=(payload.articles||[]).find(x=>x.url===feedUrl);
+        if(item){showReader({...item,subtitle:item.description||'',author:item.source||'Fonte externa'},true);return;}
+      }catch(error){console.info('O feed não contém mais esta matéria; usando os dados do link.');}
+      if(arquivada){showReader({...arquivada,subtitle:arquivada.description,author:arquivada.source},true);return;}
+      showReader({title:'Manchete não encontrada no feed atual',topic:'lol',url:feedUrl,description:'A notícia saiu da seleção atual. O link para a fonte original continua disponível abaixo.',source:'Fonte original'},true);
+    };
+    carregar();
   }
 })();

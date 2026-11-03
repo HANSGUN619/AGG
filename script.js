@@ -30,30 +30,41 @@ const form=document.querySelector('#contact-form');if(form){form.addEventListene
     const items = Array.isArray(payload.articles) ? payload.articles : [];
     const atualizacao = payload.updatedAt ? 'Atualização do portal: '+formatarData(payload.updatedAt) : 'Seleção inicial verificada. A atualização automática começa após a publicação com GitHub Actions.';
     statuses.forEach(status => {status.textContent=atualizacao;});
-    // Destaques visuais: a manchete abre a fonte original e usa a imagem do feed.
-    const mainFeatureStatus = document.querySelector('[data-hero-status]');
-    document.querySelectorAll('[data-feature]').forEach(feature => {
-      const topico = feature.dataset.feature;
-      const story = items.filter(x => x.topic === topico && seguro(x.url)).sort((a,b) => (b.publishedAt||'').localeCompare(a.publishedAt||''))[0];
-      if (!story) return;
-      feature.href = seguro(story.url);
-      feature.target = '_blank';
-      feature.rel = 'noopener noreferrer';
-      const headline = feature.querySelector('h3');
-      if (headline) headline.textContent = story.title;
-      const excerpt = feature.querySelector('.lead-caption p');
-      if (excerpt) excerpt.textContent = story.description || 'Acompanhe a cobertura na fonte original.';
-      const heroImg = feature.querySelector('img');
-      if (heroImg) {
-        const fall = fallbackImage[topico] || 'assets/arena.svg';
-        heroImg.onerror = () => {heroImg.onerror=null;heroImg.src=fall;};
-        heroImg.src = seguro(story.image) || fall;
-        heroImg.alt = 'Imagem relacionada à notícia, fornecida pela fonte ' + (story.source || 'externa');
-      }
-      const marker = feature.querySelector('.read-marker');
-      if (marker) marker.textContent = (story.source || 'Fonte original') + ' · ' + formatarData(story.publishedAt) + ' · ABRIR MATÉRIA ↗';
-    });
-    if (mainFeatureStatus) mainFeatureStatus.textContent = 'MANCHETES ORIGINAIS · LINKS PARA AS FONTES';
+
+// Os links da Home atual ainda não possuem data-feature.
+// Procuramos os três blocos existentes, sem alterar os arquivos HTML.
+const destaques = [
+  {topic: 'lol', el: document.querySelector('[data-feature="lol"]') || document.querySelector('.lead-main .lead-image')},
+  {topic: 'val', el: document.querySelector('[data-feature="val"]') || document.querySelector('.secondary-leads article:nth-child(1) .secondary-image')},
+  {topic: 'cs', el: document.querySelector('[data-feature="cs"]') || document.querySelector('.secondary-leads article:nth-child(2) .secondary-image')}
+];
+const mainFeatureStatus = document.querySelector('[data-hero-status]');
+destaques.forEach(({topic, el: feature}) => {
+  if (!feature) return;
+  const recentes = items.filter(x => x.topic === topic && seguro(x.url))
+    .sort((a,b) => (b.publishedAt || '').localeCompare(a.publishedAt || ''));
+  // Privilegia notícia recente com fotografia verdadeira no feed.
+  const comFoto = x => seguro(x.image) && !String(x.image).includes('/assets/') && !String(x.image).startsWith('assets/');
+  const story = recentes.find(comFoto) || recentes[0];
+  if (!story) return;
+  feature.href = seguro(story.url);
+  feature.target = '_blank';
+  feature.rel = 'noopener noreferrer';
+  const headline = feature.querySelector('h3');
+  if (headline) headline.textContent = story.title;
+  const excerpt = feature.querySelector('.lead-caption p');
+  if (excerpt) excerpt.textContent = story.description || 'Acompanhe a matéria na fonte original.';
+  const heroImg = feature.querySelector('img');
+  if (heroImg) {
+    const reserva = fallbackImage[topic] || 'assets/arena.svg';
+    heroImg.onerror = () => { heroImg.onerror = null; heroImg.src = reserva; };
+    heroImg.src = seguro(story.image) || reserva;
+    heroImg.alt = 'Foto da manchete divulgada por ' + (story.source || 'fonte externa');
+  }
+  const marker = feature.querySelector('.read-marker');
+  if (marker) marker.textContent = (story.source || 'Fonte original') + ' · ' + formatarData(story.publishedAt) + ' · ABRIR MATÉRIA ↗';
+});
+if (mainFeatureStatus) mainFeatureStatus.textContent = 'FOTOS E MANCHETES DAS FONTES ORIGINAIS';
     destinos.forEach(destino => {
       const assunto = destino.dataset.liveFeed;
       const limite = Math.min(12, Math.max(1,Number(destino.dataset.limit)||6));

@@ -116,6 +116,36 @@ def riot_news(topic: str, url: str) -> list[dict]:
     return output[:15]
 
 
+def hltv_image(item: ET.Element) -> str:
+    """Seleciona a foto fornecida pelo próprio RSS da HLTV.
+
+    A consulta usa a URL *original*: links do CDN da HLTV podem conter
+    assinaturas e parâmetros codificados que não devem ser reformatados.
+    """
+    allowed_hosts = ("img-cdn.hltv.org", "img.hltv.org", "hltv.org", "www.hltv.org")
+    namespace = "http://search.yahoo.com/mrss/"
+
+    # O feed oficial da HLTV fornece fotos como media:content.
+    for tag in (f"{{{namespace}}}content", f"{{{namespace}}}thumbnail"):
+        for node in item.findall(f".//{tag}"):
+            mime = (node.attrib.get("type") or "").lower()
+            medium = (node.attrib.get("medium") or "").lower()
+            if mime and not mime.startswith("image/") and medium != "image":
+                continue
+            image = safe_url(node.attrib.get("url"), allowed_hosts)
+            if image:
+                return image
+
+    # Outros feeds podem utilizar a forma clássica RSS 2.0.
+    for enclosure in item.findall("enclosure"):
+        if not (enclosure.attrib.get("type") or "").lower().startswith("image/"):
+            continue
+        image = safe_url(enclosure.attrib.get("url"), allowed_hosts)
+        if image:
+            return image
+    return FALLBACK_IMG["cs"]
+
+
 def hltv_news(url: str) -> list[dict]:
     root = ET.fromstring(request(url))
     output = []
@@ -129,7 +159,7 @@ def hltv_news(url: str) -> list[dict]:
             "title": title,
             "description": clean(item.findtext("description"), 160),
             "url": link,
-            "image": FALLBACK_IMG["cs"],
+            "image": hltv_image(item),
             "publishedAt": date_iso(item.findtext("pubDate") or ""),
             "source": "HLTV",
         })

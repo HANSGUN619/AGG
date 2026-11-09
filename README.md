@@ -1,49 +1,72 @@
-# ARENA//GG — portal de notícias de e-sports
+# ARENA//GG — notícias e análises de e-sports
 
-Trabalho acadêmico em HTML, CSS, JavaScript e uma automação opcional em Python com GitHub Actions. A aplicação tem cinco páginas HTML: Home, League of Legends, VALORANT, Counter-Strike 2 e Contato. O menu principal aparece nas cinco.
+**ARENA//GG** é um blog acadêmico sobre o cenário competitivo de **League of Legends**, **VALORANT** e **Counter-Strike 2**. O portal reúne destaques das modalidades, notícias de fontes identificadas, reportagens originais e informações sobre partidas.
 
-## Como funcionam as notícias reais?
+**[🌐 Acessar o site publicado](https://hansgun619.github.io/AGG/)** · **[📁 Repositório no GitHub](https://github.com/HANSGUN619/AGG)**
 
-- A API pública mantida por **Soraclee** fornece dados de notícias oficiais da Riot Games para **League of Legends e VALORANT**.
-- O **RSS da HLTV** fornece manchetes do competitivo de **Counter-Strike**.
-- O script [`scripts/atualizar_noticias.py`](scripts/atualizar_noticias.py) obtém os feeds, separa os resultados por modalidade e gera `data/noticias.json`.
-- `script.js` carrega esse arquivo e monta cards com **título, data, imagem e atribuição**, sempre levando ao link original em outra aba. O portal não hospeda as matérias integrais.
-- O GitHub Actions tenta atualizar e publicar o portal **a cada seis horas**. Podem ocorrer atrasos e indisponibilidade das fontes; não são resultados em tempo real. Se uma fonte falhar, o script mantém as manchetes já existentes daquela modalidade.
-- Os textos estáticos de análise são conteúdo original de demonstração e não devem ser confundidos com matérias de terceiros.
+## Páginas do blog
 
-## Como colocar online e ligar a atualização automática (GitHub Pages)
+| Página | Conteúdo |
+| --- | --- |
+| [Home](index.html) | Apresentação do blog, três destaques com imagens clicáveis, manchetes e reportagens. |
+| [League of Legends](league-of-legends.html) | Notícias, análises e informações sobre o competitivo de LoL. |
+| [VALORANT](valorant.html) | Notícias, estratégias e cobertura do cenário profissional de VALORANT. |
+| [Counter-Strike 2](counter-strike-2.html) | Notícias, torneios e análises sobre CS2. |
+| [Contato](contato.html) | Formulário demonstrativo para composição e prévia de mensagens. |
 
-1. Crie um repositório **público** no GitHub, por exemplo `arena-gg`, e envie **todos os arquivos e pastas** deste projeto para a raiz da branch **main**. Não envie só o ZIP sem extraí-lo.
-2. No repositório, acesse **Settings > Pages > Build and deployment**. Em **Source**, selecione **GitHub Actions** (não "Deploy from a branch").
-3. Vá à aba **Actions** e selecione **Publicar ARENA GG e atualizar noticias**. Clique em **Run workflow** (ou aguarde o primeiro workflow executado pelo push). Se o repositório solicitar habilitar Actions, habilite-o.
-4. Acompanhe a execução na aba **Actions**. Quando o job *deploy* terminar, em **Settings > Pages** aparece o link **Visit site**.
-5. Verifique as notícias na Home e nas páginas das modalidades. As primeiras notícias já estão presentes no arquivo `data/noticias.json`; após a primeira execução, o arquivo é regenerado durante o deploy com as notícias recuperadas naquele momento.
-6. Copie para o PDF da AOP2 o link do repositório e o link do site publicado. Preencha a capa com seus dados e matrícula.
+A **Home** apresenta o objetivo do portal e contém três cards fixos — um para cada modalidade — com **imagem, breve descrição e link para a página correspondente**. Esses links fazem parte do HTML e não dependem de JavaScript para funcionar.
 
-> **Atenção:** é importante selecionar a origem **GitHub Actions**, pois o workflow publica o próprio site com os novos dados. Caso você use *Deploy from a branch*, a automação não terá o mesmo efeito. O `data/noticias.json` **do repositório** permanece como curadoria inicial: as notícias novas são incluídas no site publicado a cada execução do workflow, sem criar commits automáticos.
+## Funcionalidades
 
-## Ver no computador
+- **Notícias atualizadas automaticamente:** manchetes de fontes externas, com título, data, resumo, fotografia quando disponível e crédito.
+- **Leitura dentro do ARENA//GG:** as chamadas levam a uma visualização da notícia no portal, com acesso à fonte original para leitura completa.
+- **Reportagens autorais:** textos editoriais escritos para o projeto, incluindo uma cobertura das negociações entre Zeus e a Hanwha Life Esports (HLE).
+- **Resultados e partidas:** seção informativa com placares de referência; **não representa resultados ao vivo**.
+- **Layout responsivo:** páginas adaptadas para celulares e computadores, com navegação compartilhada.
 
-Na pasta do projeto, execute:
+> **Transparência editorial:** os resumos automáticos não reproduzem integralmente matérias de outros sites. A reportagem completa deve ser consultada na fonte indicada. Imagens externas podem não estar disponíveis; nesses casos, o portal utiliza ilustrações locais como alternativa.
+
+## De onde vêm as notícias?
+
+O atualizador [`scripts/attnot.py`](scripts/attnot.py) consulta as seguintes fontes públicas:
+
+- **LoL e VALORANT:** [Riot Games News API comunitária](https://github.com/Soraclee/riotgames-news-api), mantida por Soraclee.
+- **CS2:** [feed RSS da HLTV](https://www.hltv.org/rss/news).
+
+O script gera [`data/noticias.json`](data/noticias.json). O arquivo [`script.js`](script.js) lê os dados e atualiza as manchetes exibidas no navegador. Quando uma fonte não responde, o atualizador tenta preservar os dados existentes daquela modalidade.
+
+A publicação usa **GitHub Actions**, configurado em [`.github/workflows/publicar-site.yml`](.github/workflows/publicar-site.yml). O fluxo executa o Python e publica o site no GitHub Pages quando há um novo commit na branch `main`, quando acionado manualmente e, normalmente, em intervalos programados de **seis horas**. A execução programada pode sofrer atrasos.
+
+**Importante:** o JSON gerado durante a publicação integra o site servido pelo GitHub Pages. Ele não precisa aparecer como um novo commit no repositório após cada atualização.
+
+## Tecnologias utilizadas
+
+- **HTML5** — estrutura das cinco páginas;
+- **CSS3** — identidade visual e responsividade;
+- **JavaScript** — navegação, notícias, reportagens e interações;
+- **Python 3** — coleta e preparação das manchetes;
+- **GitHub Actions + GitHub Pages** — automação e hospedagem.
+
+## Executar localmente
+
+Depois de baixar ou clonar o repositório, abra um terminal na pasta do projeto e execute:
 
 ```bash
 python -m http.server 8000
 ```
 
-Depois abra `http://localhost:8000/`. Abrir o arquivo `index.html` diretamente pelo gerenciador de arquivos pode impedir o carregamento de JSON por restrições do navegador (`file://`).
+Acesse **http://localhost:8000/** no navegador. Um servidor local é recomendado porque o navegador pode bloquear a leitura do arquivo JSON quando a Home é aberta diretamente por `file://`.
 
-## Fontes
+Para atualizar as notícias manualmente, execute antes:
 
-- [API comunitária de notícias Riot](https://github.com/Soraclee/riotgames-news-api)
-- [Feed RSS da HLTV](https://www.hltv.org/rss/news)
-- [GitHub Pages — documentação](https://docs.github.com/en/pages/getting-started-with-github-pages/creating-a-github-pages-site)
+```bash
+python scripts/attnot.py
+```
 
-O projeto não é afiliado à Riot Games ou à HLTV. Títulos e miniaturas pertencem às fontes indicadas, quando aplicável. O layout, as artes editoriais estáticas e os textos analíticos foram produzidos para atividade acadêmica.
-
-## Organização
+## Estrutura principal
 
 ```text
-arena-gg/
+AGG/
 ├── index.html
 ├── league-of-legends.html
 ├── valorant.html
@@ -52,12 +75,20 @@ arena-gg/
 ├── style.css
 ├── script.js
 ├── assets/
+│   ├── arena.svg
+│   ├── league.svg
+│   ├── valorant.svg
+│   └── counter-strike.svg
 ├── data/
 │   └── noticias.json
 ├── scripts/
-│   └── atualizar_noticias.py
+│   └── attnot.py
 ├── .github/
 │   └── workflows/
 │       └── publicar-site.yml
 └── README.md
 ```
+
+## Sobre o projeto
+
+Desenvolvido como **atividade acadêmica de desenvolvimento web**, com tema **e-sports**. Trata-se de um projeto educacional independente, **sem vínculo oficial com a Riot Games, a Valve, a HLTV ou as equipes citadas**. Nomes, notícias e imagens de terceiros pertencem aos respectivos titulares; fontes e créditos são apresentados quando disponíveis.
